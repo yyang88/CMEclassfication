@@ -45,7 +45,6 @@ def get_CME_month_datetime_list(year, month):
         except Exception:
             print('\n{} request fail, jump to next CME incident'.format(
                 start_end_time_url))
-            print(Exception)
             # 如果请求每次事件网页出错，那么直接跳至下一张图片的tr节点
             continue
         time_regex = re.compile(
@@ -89,7 +88,7 @@ class DataEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
-def save_CME_month_list(CME_month_appear_datetime_list, year, month):
+def save_CME_month_list(CME_month_appear_datetime_list, year, month, save_location):
     create_file(os.path.join(save_location, 'CMElist'))
     json_filename = os.path.join(
         save_location, 'CMElist\{}_{}_CMEList.json'.format(year, month))
@@ -98,8 +97,8 @@ def save_CME_month_list(CME_month_appear_datetime_list, year, month):
               json_filename, DataEncoder)
 
 
-if __name__ == '__main__':
-    save_location = r'D:\Programming\CME_data'
-    year, month = 2013, 8
-    CME_month_appear_datetime_list = get_CME_month_datetime_list(year, month)
-    save_CME_month_list(CME_month_appear_datetime_list, year, month)
+# if __name__ == '__main__':
+#     save_location = r'D:\Programming\CME_data'
+#     year, month = 2013, 8
+#     CME_month_appear_datetime_list = get_CME_month_datetime_list(year, month)
+#     save_CME_month_list(CME_month_appear_datetime_list, year, month,save_location)
