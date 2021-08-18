@@ -1,7 +1,6 @@
 import requests
 from lxml import etree
 from datetime import datetime
-import urllib.parse as parse
 import re
 from tqdm import tqdm
 import json
@@ -24,14 +23,12 @@ except Exception:
     print('{} requests fail'.format(CME_month_list_url))
 html = etree.HTML(month_page.text)
 CME_datetime = []
-# criteron = "{}/{}/{}".format(year, month, day)
 # 查找记录每一次CME的行的tr节点
 month_tr_node_list = html.xpath('//tr//td[@headers="hd_date_time"]/..')
 # 该列表包含了每一个月的CME发生日期、时间以及标注
 pbar = tqdm(total=len(month_tr_node_list))
 CME_month_appear_datetime_list = []
 for node in month_tr_node_list:
-    # datetimelist = node.xpath('/td[@headers="hd_date_time"]/@headers')
     # 获得每一次CME事件的remarks
     remarks = node.xpath('./td[@headers="hd_remark"]/text()')[0].strip()
     # print(remarks)
@@ -40,12 +37,7 @@ for node in month_tr_node_list:
         './td[@headers="hd_date_time"][1]/a/@href')[0]  # 路径前若不加点，则代表向该节点的绝对路径，会出错
     start_end_time_url = '/'.join(CME_month_list_url.split('/')
                                   [0:-1])+'/'+start_end_time_partial_url   # start_end_time_url储存了指向每一次CME事件java movie的链接，希望从中获取起止时刻
-    # print('/'.join(CME_month_list_url.split('/')[0:-1]))
-    # print(start_end_time_partial_url)
-    # print(parse.urljoin('/'.join(CME_month_list_url.split('/')
-    #       [0:-1]), start_end_time_partial_url))
-    # print(parse.urljoin('/'.join(CME_month_list_url.split('/')
-    #       [0:-1]), start_end_time_partial_url))
+
     try:
         CME_java_movie_page = requests.get(start_end_time_url)
     except Exception:
@@ -59,21 +51,17 @@ for node in month_tr_node_list:
     # 每次CME事件的开始和结束时间，该时间来源于每次CME的java movie
     CME_start_time = datetime.strptime(result[0]+result[1], r'%Y%m%d%H%M')
     CME_end_time = datetime.strptime(result[2]+result[3], r'%Y%m%d%H%M')
-    # print(CME_start_time)
-    # print(CME_end_time)
 
     # 每次CME的发生时间和第一次出现的时刻
     datetime_list = node.xpath('./td[@headers="hd_date_time"]/a/text()')
     CME_month_appear_datetime = datetime.strptime(datetime_list[0].strip()+' ' +
                                                   datetime_list[1].strip(), r'%Y/%m/%d %H:%M:%S')
-    # print(CME_month_appear_datetime)
 
     CME_datetime_dict = {'appear': CME_month_appear_datetime, 'start': CME_start_time,
                          'end': CME_end_time, 'remark': remarks}  # 记录每次CME事件日期、起始、结束、标记的字典
     CME_month_appear_datetime_list.append(CME_datetime_dict)
     pbar.update(1)
 pbar.close()
-# print(CME_month_appear_datetime_list)
 # 将包含有每月CME事件的列表储存在该json文件中
 if not os.path.exists(os.path.join(save_location, 'CMEList')):
     os.makedirs(os.path.join(save_location, 'CMEList'))
