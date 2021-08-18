@@ -116,20 +116,21 @@ def mutil_thread_download(daily_pic_list, save_location):
             break
 
 
-def main(year, month, day, save_location):
-    num_threads = os.cpu_count()/2  # 最大线程数定义为cpu核心的1/2
+def download_daily_pic(year, month, day, save_location):
+    # 下载给定年月日的图片
+    num_threads = int(os.cpu_count()/2)  # 最大线程数定义为cpu核心的1/2
     # 记录每日CME的图像的链接
     CME_daily_pics_url = 'https://cdaw.gsfc.nasa.gov/images/soho/lasco/{0:}/{1:0>2d}/{2:0>2d}/'.format(
         year, month, day)
     json_filename = os.path.join(
-        save_location, 'CMElist\{}_{}_{}_CMEList.json'.format(year, month, day))
+        save_location, 'CMElist\{}_{}_CMEList.json'.format(year, month))
     CME_month_appear_datetime_list = read_CME_list_json(json_filename)
     daily_pic_list = get_daily_pic_list(
         CME_daily_pics_url, CME_month_appear_datetime_list)
     print('获取到{0:}/{1:0>2d}/{2:0>2d}图片共计{3:}张'.format(year,
           month, day, len(daily_pic_list)))
     thread_pool = [threading.Thread(
-        target=mutil_thread_download, args=(daily_pic_list, save_location)) for i in range(int(num_threads))]
+        target=mutil_thread_download, args=(daily_pic_list, save_location)) for i in range(num_threads)]
     for thread in thread_pool:
         thread.start()
     for thread in thread_pool:
@@ -139,4 +140,4 @@ def main(year, month, day, save_location):
 if __name__ == '__main__':
     year, month, day = 2013, 8, 1
     save_location = r'D:\Programming\CME_data'
-    main(year, month, day, save_location)
+    download_daily_pic(year, month, day, save_location)
