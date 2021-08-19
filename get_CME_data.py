@@ -21,7 +21,7 @@ def get_CME_month_datetime_list(year, month):
     # 查找记录每一次CME的行的tr节点
     month_tr_node_list = html.xpath('//tr//td[@headers="hd_date_time"]/..')
     # 该列表包含了每一个月的CME发生日期、时间以及标注
-    print('Processing {0:}/{1:0>2d} data\n'.format(year, month))
+    print('Processing {0:}/{1:0>2d} data list\n'.format(year, month))
     pbar = tqdm(total=len(month_tr_node_list))
     CME_month_appear_datetime_list = []
     for node in month_tr_node_list:
