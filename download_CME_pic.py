@@ -71,9 +71,11 @@ def download_sigle_pic(pic_url: str, save_location: str, remark: str, is_CME: bo
             print('{} download complete'.format(pic_filename))
 
 
-def get_daily_pic_list(CME_daily_pics_url, CME_month_appear_datetime_list):
+def get_daily_pic_list(year, month, day, CME_month_appear_datetime_list):
     # 访问每日所有图片的网页，根据每次CME事件的起止时刻，判断其是否是CME
     # 并返回包含图片url、标注remark、is_CME的列表
+    CME_daily_pics_url = 'https://cdaw.gsfc.nasa.gov/images/soho/lasco/{0:}/{1:0>2d}/{2:0>2d}/'.format(
+        year, month, day)
     daily_pic_list = []  # 包含该日所有图片的链接、remarks以及是否是CME事件
     daily_pic_page = requests.get(CME_daily_pics_url)
     pic_href_regex = re.compile(
@@ -120,10 +122,8 @@ def download_daily_pic(year, month, day, save_location, CME_month_appear_datetim
     # 下载给定年月日的图片
     num_threads = int(os.cpu_count()/2)  # 最大线程数定义为cpu核心的1/2
     # 记录每日CME的图像的链接
-    CME_daily_pics_url = 'https://cdaw.gsfc.nasa.gov/images/soho/lasco/{0:}/{1:0>2d}/{2:0>2d}/'.format(
-        year, month, day)
     daily_pic_list = get_daily_pic_list(
-        CME_daily_pics_url, CME_month_appear_datetime_list)
+        year, month, day, CME_month_appear_datetime_list)
     print('获取到{0:}/{1:0>2d}/{2:0>2d}图片共计{3:}张'.format(year,
           month, day, len(daily_pic_list)))
     thread_pool = [threading.Thread(
