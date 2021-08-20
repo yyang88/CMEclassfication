@@ -20,7 +20,8 @@ def mutilthread_download_daily_pic(year, month, days, save_location,
     while True:
         if days:
             day = days.pop()
-            print('download {0:}/{1:0>2d}/{2:0>2d}'.format(year, month, day))
+            print(
+                'Pocessing {0:}/{1:0>2d}/{2:0>2d} data list'.format(year, month, day))
             downloadCME.download_daily_pic(
                 year, month, day, save_location, CME_month_appear_datetime_list)
         else:
