@@ -140,3 +140,4 @@ cython_debug/
 *.png
 /.vscode
 /.idea
+/train_info

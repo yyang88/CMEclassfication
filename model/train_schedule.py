@@ -13,27 +13,29 @@ import pandas as pd
 
 
 class ModelTrain:
-    def __init__(self, para_dict) -> None:
+    def __init__(self, para_dict, forcing_load_from_pic=False) -> None:
         self.save_location = para_dict['save_location']
         self.lr = para_dict['lr']
         self.num_epochs = para_dict['num_epochs']
         self.batch_size = para_dict['batch_size']
         self.drop_prob = para_dict['drop_prob']
         self.selected_remarks = para_dict['selected_remarks']
+        self.train_percentage = para_dict['train_percentage']
         self.net = model_defination.Net(drop_prob=self.drop_prob)
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.net.parameters(), lr=self.lr)
         self.device = torch.device(
             'cuda' if torch.cuda.is_available() else'cpu')
         self.cmedata = load_data.CMEdata(
-            self.save_location, self.selected_remarks)
+            self.save_location, self.selected_remarks, self.train_percentage)
+        self.forcing_load_from_pic = forcing_load_from_pic
 
     def __create_folder(self, path_to_folder):
         if not os.path.exists(path_to_folder):
             os.makedirs(path_to_folder)
 
     def __get_dataloader(self):
-        self.cmedata.load_data_from_npz()
+        self.cmedata.load_data(self.forcing_load_from_pic)
         train_dataset = self.cmedata.to_tensordataset(is_train=True)
         test_dataset = self.cmedata.to_tensordataset(is_train=False)
         train_iter = torch.utils.data.DataLoader(
@@ -68,11 +70,23 @@ class ModelTrain:
         print('Save training detail infomation to {}'.format(train_info_path))
 
     def evaluate_accuracy_on(self, X, y):
+        """
+        求在给定数据集上的正确率
+        Arguments:
+        ---------
+        X : 数据集
+        y : 数据集标签
+        Returns:
+        -------
+        accuracy :在给定数据集上的正确率
+        """
+
         num_accu, total = 0, 0
         X, y = X.to(self.device), y.to(self.device)
         num_accu += (torch.argmax(self.net(X), dim=1) == y).sum().item()
         total += X.shape[0]
-        return num_accu/total
+        accuracy = num_accu/total
+        return accuracy
 
     def __evaluate_accuracy_on_testiter(self, test_iter):
         num_accu, total = 0, 0

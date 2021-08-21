@@ -64,6 +64,8 @@ def load_CME(save_location, selected_remarks):
     for remark in selected_remarks:
         current_label_imgarray = read_imgarray_from_folder(
             os.path.join(CME_path, remark))
+        print('Reading CME data from {}'.format(
+            os.path.join(CME_path, remark)))
         imgarray = np.concatenate((imgarray, current_label_imgarray), axis=0)
     labels = np.ones(imgarray.shape[0], dtype=np.int64)
     return imgarray, labels
@@ -82,6 +84,7 @@ def load_no_CME(save_location):
     """
 
     No_CME_path = os.path.join(save_location, 'No CME')
+    print('Reading No CME data from {}'.format(No_CME_path))
     imgarray = read_imgarray_from_folder(No_CME_path)
     labels = np.zeros(imgarray.shape[0], dtype=np.int64)
     return imgarray, labels
@@ -89,7 +92,7 @@ def load_no_CME(save_location):
 
 class CMEdata:
     # 该类用以载入数据集，同时会将CME和非CME数据混合后打乱，并可以以TensorDataset形式输出
-    def __init__(self, save_location: str, selected_remarks: list):
+    def __init__(self, save_location: str, selected_remarks: list, train_percentage):
         """
 
         Arguments:
@@ -102,6 +105,7 @@ class CMEdata:
 
         self.save_location = save_location
         self.selected_remarks = selected_remarks
+        self.train_percentage = train_percentage
 
     def __random_split(self, data: np.ndarray, labels: np.ndarray, train_percentage):
         size = data.shape[0]  # 数据集中数据的个数
@@ -119,7 +123,7 @@ class CMEdata:
     def save_data_to_npz(self):
         # 储存数据集和标签
         npz_save_path = os.path.join(self.save_location, 'npz')
-        print('data save to {}'.format(npz_save_path))
+        print('npz data save to {}'.format(npz_save_path))
         if not os.path.exists(npz_save_path):
             os.makedirs(npz_save_path)
         np.savez(os.path.join(npz_save_path, 'data.npz'),
@@ -136,10 +140,6 @@ class CMEdata:
         ---------
         train_percentage : 训练集所占全部数据集的比重，使用该方法时，需要自行划分训练集与测试集
         """
-        npz_file_path = os.path.join(self.save_location, 'npz', 'data.npz')
-        if os.path.exists(npz_file_path):
-            print('Pic npz file exists in {}, recommend to load data from npz file directly next time'.format(
-                npz_file_path))
         print('Loading data from {}'.format(self.save_location))
         CMEdata, CME_labels = load_CME(
             self.save_location, self.selected_remarks)
@@ -152,6 +152,9 @@ class CMEdata:
         self.test_size = self.size-self.train_size
         self.train_data, self.train_label, self.test_data, self.test_label = self.__random_split(
             data, labels, train_percentage)
+        npz_file_path = os.path.join(self.save_location, 'npz', 'data.npz')
+        if not os.path.exists(npz_file_path):
+            self.save_data_to_npz()
 
     def load_data_from_npz(self):
         # 从已经储存的npz文件中加载数据
@@ -166,6 +169,16 @@ class CMEdata:
         self.size = self.train_data.shape[0]+self.test_data.shape[0]
         self.train_size = self.train_data.shape[0]
         self.test_size = self.size-self.train_size
+
+    def load_data(self, forcing_load_from_pic=False):
+        npz_file_path = os.path.join(self.save_location, 'npz', 'data.npz')
+        # 存在npz文件并且不强制从图片载入，则从npz文件载入
+        if os.path.exists(npz_file_path) and forcing_load_from_pic is False:
+            print('Pic npz file exists in {},load data from npz file'.format(
+                npz_file_path))
+            self.load_data_from_npz()
+        else:
+            self.load_data_from_pic(self.train_percentage)
 
     def to_tensordataset(self, is_train=True):
         """
@@ -198,7 +211,7 @@ if __name__ == '__main__':
     selected_remarks = ['Halo', 'No Remark', 'Partial Halo']
     train_percentage = 0.7
     batch_size = 100
-    cmedata = CMEdata(save_location, selected_remarks)
+    cmedata = CMEdata(save_location, selected_remarks, train_percentage)
     cmedata.load_data_from_pic(train_percentage)
     cmedata.save_data_to_npz()
     train_dataset = cmedata.to_tensordataset()
