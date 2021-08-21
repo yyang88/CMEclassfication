@@ -65,7 +65,7 @@ def load_CME(save_location, selected_remarks):
         current_label_imgarray = read_imgarray_from_folder(
             os.path.join(CME_path, remark))
         imgarray = np.concatenate((imgarray, current_label_imgarray), axis=0)
-    labels = np.ones(imgarray.shape[0], dtype=np.float32)
+    labels = np.ones(imgarray.shape[0], dtype=np.int64)
     return imgarray, labels
 
 
@@ -83,7 +83,7 @@ def load_no_CME(save_location):
 
     No_CME_path = os.path.join(save_location, 'No CME')
     imgarray = read_imgarray_from_folder(No_CME_path)
-    labels = np.zeros(imgarray.shape[0])
+    labels = np.zeros(imgarray.shape[0], dtype=np.int64)
     return imgarray, labels
 
 
@@ -151,24 +151,24 @@ class CMEdata:
         npz_save_path = os.path.join(self.save_location, 'npz')
         print('Loading data from {}'.format(npz_save_path))
         data = np.load(os.path.join(npz_save_path, 'data.npz'))
-        self.size = self.train_data.shape[0]+self.test_data.shape[0]
-        self.train_size = int(self.size*self.train_percentage)
-        self.test_size = self.size-self.train_size
         self.train_data = data['train_data']
         self.train_label = data['train_label']
         self.test_data = data['test_data']
         self.test_label = data['test_label']
+        self.size = self.train_data.shape[0]+self.test_data.shape[0]
+        self.train_size = int(self.size*self.train_percentage)
+        self.test_size = self.size-self.train_size
 
     def to_tensordataset(self, is_train=True):
         """
 
         Arguments:
         ---------
-        is_train   : 若为True，输出训练集数据，若为False输出测试集数据
+        is_train      : 若为True，输出训练集数据，若为False输出测试集数据
 
         Returns:
         -------
-
+        TensorDataset : 返回训练集或者测试集数据，可用于初始化DataLoader
         """
         if is_train:
             feature = self.train_data
@@ -185,6 +185,7 @@ class CMEdata:
 
 
 if __name__ == '__main__':
+    # 该文件被设置为可以独立运行
     save_location = r'D:\Programming\CME_data'
     selected_remarks = ['Halo', 'No Remark', 'Partial Halo']
     train_percentage = 0.7
