@@ -89,7 +89,7 @@ def load_no_CME(save_location):
 
 class CMEdata:
     # 该类用以载入数据集，同时会将CME和非CME数据混合后打乱，并可以以TensorDataset形式输出
-    def __init__(self, save_location: str, selected_remarks: list, train_percentage: float):
+    def __init__(self, save_location: str, selected_remarks: list):
         """
 
         Arguments:
@@ -102,13 +102,12 @@ class CMEdata:
 
         self.save_location = save_location
         self.selected_remarks = selected_remarks
-        self.train_percentage = train_percentage
 
-    def __random_split(self, data: np.ndarray, labels: np.ndarray):
+    def __random_split(self, data: np.ndarray, labels: np.ndarray, train_percentage):
         size = data.shape[0]  # 数据集中数据的个数
         index = np.arange(size)  # 产生索引
         np.random.shuffle(index)  # 打乱索引，以便将数据都混合在一起
-        split = int(self.train_percentage*size)  # 获得训练集和测试集的分划点
+        split = int(train_percentage*size)  # 获得训练集和测试集的分划点
         # 0到split为训练集 split到最后为测试集
         train_index, test_index = index[:split], index[split:]
         train_data = data[train_index, :, :, :]
@@ -129,9 +128,18 @@ class CMEdata:
                  test_data=self.test_data,
                  test_label=self.test_label)
 
-    def load_data_from_pic(self):
-        # 加载图片数据，打乱，分割并作为数据集和测试集
-        # ！！！！使用该方法，每次得到的训练集和测试集不完全相同
+    def load_data_from_pic(self, train_percentage):
+        """
+        加载图片数据，打乱，分割并作为数据集和测试集
+        ！！！！使用该方法，每次得到的训练集和测试集不完全相同
+        Arguments:
+        ---------
+        train_percentage : 训练集所占全部数据集的比重，使用该方法时，需要自行划分训练集与测试集
+        """
+        npz_file_path = os.path.join(self.save_location, 'npz', 'data.npz')
+        if os.path.exists(npz_file_path):
+            print('Pic npz file exists in {}, recommend to load data from npz file directly next time'.format(
+                npz_file_path))
         print('Loading data from {}'.format(self.save_location))
         CMEdata, CME_labels = load_CME(
             self.save_location, self.selected_remarks)
@@ -140,10 +148,10 @@ class CMEdata:
         data = np.concatenate((CMEdata, no_CME_data), axis=0)
         labels = np.concatenate((CME_labels, no_CME_labels), axis=0)
         self.size = data.shape[0]
-        self.train_size = int(self.size*self.train_percentage)
+        self.train_size = int(self.size*train_percentage)
         self.test_size = self.size-self.train_size
         self.train_data, self.train_label, self.test_data, self.test_label = self.__random_split(
-            data, labels)
+            data, labels, train_percentage)
 
     def load_data_from_npz(self):
         # 从已经储存的npz文件中加载数据
@@ -156,7 +164,7 @@ class CMEdata:
         self.test_data = data['test_data']
         self.test_label = data['test_label']
         self.size = self.train_data.shape[0]+self.test_data.shape[0]
-        self.train_size = int(self.size*self.train_percentage)
+        self.train_size = self.train_data.shape[0]
         self.test_size = self.size-self.train_size
 
     def to_tensordataset(self, is_train=True):
@@ -190,8 +198,8 @@ if __name__ == '__main__':
     selected_remarks = ['Halo', 'No Remark', 'Partial Halo']
     train_percentage = 0.7
     batch_size = 100
-    cmedata = CMEdata(save_location, selected_remarks, train_percentage)
-    cmedata.load_data_from_pic()
+    cmedata = CMEdata(save_location, selected_remarks)
+    cmedata.load_data_from_pic(train_percentage)
     cmedata.save_data_to_npz()
     train_dataset = cmedata.to_tensordataset()
     train_iter = torch.utils.data.DataLoader(

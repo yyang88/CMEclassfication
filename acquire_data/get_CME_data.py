@@ -91,7 +91,7 @@ class DataEncoder(json.JSONEncoder):
 def save_CME_month_list(CME_month_appear_datetime_list, year, month, save_location):
     create_file(os.path.join(save_location, 'CMElist'))
     json_filename = os.path.join(
-        save_location, 'CMElist\{}_{}_CMEList.json'.format(year, month))
+        save_location, 'CMElist', '{}_{}_CMEList.json'.format(year, month))
     print('{}/{} data save to {}'.format(year, month, json_filename))
     save_json(CME_month_appear_datetime_list,
               json_filename, DataEncoder)

@@ -49,14 +49,14 @@ def download_sigle_pic(pic_url: str, save_location: str, remark: str, is_CME: bo
         remark = 'No Remark'
     if is_CME:  # 若是CME
         # 创建\CME\remark文件夹
-        create_file(os.path.join(save_location, 'CME\\'+remark))
+        create_file(os.path.join(save_location, 'CME', remark))
         # 下载文件
         try:
             res = requests.get(pic_url)
         except Exception:  # 若下载出现错误，直接返回
             print('Error:download pic {} fail'.format(pic_filename))
             return None
-        with open(os.path.join(save_location, 'CME\\'+remark, pic_filename), 'wb') as f:
+        with open(os.path.join(save_location, 'CME', remark, pic_filename), 'wb') as f:
             f.write(res.content)
             print('{} download complete'.format(pic_filename))
     else:  # 若不是CME

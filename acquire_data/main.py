@@ -28,13 +28,16 @@ def mutilthread_download_daily_pic(year, month, days, save_location,
             break
 
 
-def download_CME_data_at(start, end, save_location, num_threads):
+def download_CME_data_at(start, end, save_location, num_threads, is_saved=True):
     """
     用来下载指定起止时间内的CME数据（起止的年份必须相同）
     Arguments
     ---------
-    start    = 一个包含起始年、月的元组
-    end      = 一个包含终止年、月的元组
+    start           = 一个包含起始年、月的元组
+    end             = 一个包含终止年、月的元组
+    save_location   = 数据集位置根目录
+    num_threads     = 下载每月数据所启动线程数
+    is_saved        = 若该值为True，则存储每月的CME数据
     -------
 
     """
@@ -44,6 +47,9 @@ def download_CME_data_at(start, end, save_location, num_threads):
     for year, month in year_month_list:
         CME_month_appear_datetime_list = getCME.get_CME_month_datetime_list(
             year, month)
+        if is_saved:
+            getCME.save_CME_month_list(
+                CME_month_appear_datetime_list, year, month, save_location)
         _, monthlen = calendar.monthrange(year, month)
         days = list(range(1, monthlen+1))
         thread_pool = [threading.Thread(target=mutilthread_download_daily_pic,
