@@ -3,17 +3,20 @@ import torch.nn as nn
 import numpy as np
 from torch.optim import optimizer
 from tqdm import tqdm
+import os
+import sys
+sys.path.append(os.path.join(os.getcwd(),'model'))
 import time
 import model_defination
 import load_data
 import configuration
 import json
-import os
 import pandas as pd
+from PIL import Image
 
 
 class ModelTrain:
-    def __init__(self, para_dict, forcing_load_from_pic=False) -> None:
+    def __init__(self, para_dict, Net, forcing_load_from_pic=False) -> None:
         self.save_location = para_dict['save_location']
         self.lr = para_dict['lr']
         self.num_epochs = para_dict['num_epochs']
@@ -21,13 +24,14 @@ class ModelTrain:
         self.drop_prob = para_dict['drop_prob']
         self.selected_remarks = para_dict['selected_remarks']
         self.train_percentage = para_dict['train_percentage']
-        self.net = model_defination.Net(drop_prob=self.drop_prob)
+        self.net = Net(drop_prob=self.drop_prob)
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.net.parameters(), lr=self.lr)
         self.device = torch.device(
-            'cuda' if torch.cuda.is_available() else'cpu')
-        self.cmedata = load_data.CMEdata(
-            self.save_location, self.selected_remarks, self.train_percentage)
+            'cuda' if torch.cuda.is_available() else 'cpu')
+        self.cmedata = load_data.CMEdata(self.save_location,
+                                         self.selected_remarks,
+                                         self.train_percentage)
         self.forcing_load_from_pic = forcing_load_from_pic
 
     def __create_folder(self, path_to_folder):
@@ -38,10 +42,12 @@ class ModelTrain:
         self.cmedata.load_data(self.forcing_load_from_pic)
         train_dataset = self.cmedata.to_tensordataset(is_train=True)
         test_dataset = self.cmedata.to_tensordataset(is_train=False)
-        train_iter = torch.utils.data.DataLoader(
-            train_dataset, self.batch_size, shuffle=True)
-        test_iter = torch.utils.data.DataLoader(
-            test_dataset, self.batch_size, shuffle=True)
+        train_iter = torch.utils.data.DataLoader(train_dataset,
+                                                 self.batch_size,
+                                                 shuffle=True)
+        test_iter = torch.utils.data.DataLoader(test_dataset,
+                                                self.batch_size,
+                                                shuffle=True)
         return train_iter, test_iter
 
     def __save_epoch_info(self, train_info_path):
@@ -51,10 +57,11 @@ class ModelTrain:
 
     def __save_para_info(self, train_info_path):
         pos = self.cmedata.train_label.sum().item()
-        neg = self.cmedata.size-pos
+        neg = self.cmedata.size - pos
         para_dict['CME_count'] = pos
         para_dict['No_CME_count'] = neg
-        para_dict['CME:NO CME'] = '{}:1'.format(pos/neg)
+        para_dict['CME:NO CME'] = '{}:1'.format(pos / neg)
+        para_dict['Net']=type(self.net)
         filename = os.path.join(train_info_path, 'para.json')
         with open(filename, 'w') as f:
             json.dump(para_dict, f)
@@ -65,8 +72,8 @@ class ModelTrain:
         self.__create_folder(train_info_path)
         self.__save_epoch_info(train_info_path)
         self.__save_para_info(train_info_path)
-        torch.save(self.net.state_dict(), os.path.join(
-            train_info_path, 'parameters.pkl'))
+        torch.save(self.net.state_dict(),
+                   os.path.join(train_info_path, 'parameters.pkl'))
         print('Save training detail infomation to {}'.format(train_info_path))
 
     def evaluate_accuracy_on(self, X, y):
@@ -83,9 +90,11 @@ class ModelTrain:
 
         num_accu, total = 0, 0
         X, y = X.to(self.device), y.to(self.device)
+        self.net.eval()  #修改为评估模式
         num_accu += (torch.argmax(self.net(X), dim=1) == y).sum().item()
+        self.net.train()  #修改为训练模式
         total += X.shape[0]
-        accuracy = num_accu/total
+        accuracy = num_accu / total
         return accuracy
 
     def __evaluate_accuracy_on_testiter(self, test_iter):
@@ -96,7 +105,7 @@ class ModelTrain:
             num_accu += (torch.argmax(self.net(X), dim=1) == y).sum().item()
             self.net.train()
             total += X.shape[0]
-        return num_accu/total
+        return num_accu / total
 
     def fit(self):
         train_iter, test_iter = self.__get_dataloader()
@@ -109,7 +118,7 @@ class ModelTrain:
             (int(self.cmedata.train_size/self.batch_size)+1)
         print('begin training')
         print('{} epoches {} iterations each epoch'.format(
-            self.num_epochs, int(self.cmedata.train_size/self.batch_size)))
+            self.num_epochs, int(self.cmedata.train_size / self.batch_size)))
         pbar = tqdm(total=total_iterations)
         train_start = time.time()
         # 记录每次epoch情况的列表
@@ -132,28 +141,50 @@ class ModelTrain:
                 train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
                 n += y.shape[0]
                 batch_count += 1
-                pbar.set_description(
-                    'epoch {} iteration {}'.format(epoch+1, iteration_count))
+                pbar.set_description('epoch {} iteration {}'.format(
+                    epoch + 1, iteration_count))
                 pbar.update(1)
             test_accu = self.__evaluate_accuracy_on_testiter(test_iter)
-            epoch_detail_dict = {'epoch_num': epoch,
-                                 'epoch_train_loss': train_l_sum/batch_count,
-                                 'epoch_train_accu': train_acc_sum/n,
-                                 'epoch_test_accu': test_accu,
-                                 'epoch_time': time.time()-current_epoch_start,
-                                 'total_time': time.time()-train_start}
+            epoch_detail_dict = {
+                'epoch_num': epoch,
+                'epoch_train_loss': train_l_sum / batch_count,
+                'epoch_train_accu': train_acc_sum / n,
+                'epoch_test_accu': test_accu,
+                'epoch_time': time.time() - current_epoch_start,
+                'total_time': time.time() - train_start
+            }
             self.train_details_list.append(epoch_detail_dict)
             epoch_detail_dict.pop('epoch_num')
             pbar.set_postfix(epoch_detail_dict)
         pbar.close()
 
+    def infer(self, path: str):
+        """
+        给定图片路径，判断是否是CME
+        Arguments:
+        ---------
+        pic:图片路径
+        
+        Returns:
+        -------
+        resu:是否为CME
+        """
+        img = Image.open(path).convert('L')
+        img = np.array(img, dtype=np.float32)
+        img = np.expand_dims(img, 0)
+        img = np.expand_dims(img, 0)
+        img = torch.from_numpy(img)
+        y = self.net(img)
+        #resu = torch.argmax(self.net(img), dim=1)
+        return y
+
 
 def save_para_info(para_dict, cmedata, path_to_folder):
     pos = cmedata.train_label.sum().item()
-    neg = cmedata.size-pos
+    neg = cmedata.size - pos
     para_dict['CME_count'] = pos
     para_dict['No_CME_count'] = neg
-    para_dict['CME:NO CME'] = '{}:1'.format(pos/neg)
+    para_dict['CME:NO CME'] = '{}:1'.format(pos / neg)
     filename = os.path.join(path_to_folder, 'para.json')
     with open(filename, 'w') as f:
         json.dump(para_dict, f)
@@ -166,6 +197,10 @@ def create_folder(path_to_folder):
 
 if __name__ == '__main__':
     para_dict = configuration.para_dict
-    modeltrain = ModelTrain(para_dict)
+    modeltrain = ModelTrain(para_dict=para_dict,Net=model_defination.LeNet5)
     modeltrain.fit()
     modeltrain.save_info()
+    resu = modeltrain.infer(
+        r'D:\Programming\CME_data\CME\Halo\20130830_031208_lasc2rdf_aia193rdf.png'
+    )
+    print(resu)

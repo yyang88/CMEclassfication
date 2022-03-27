@@ -21,12 +21,10 @@ class Net(nn.Module):
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(256, 384, 3, 1, 1),  # out 384*12*12
-            nn.ReLU()
-        )
+            nn.ReLU())
         self.conv4 = nn.Sequential(
             nn.Conv2d(384, 384, 3, 1, 1),  # out 384*12*12
-            nn.ReLU()
-        )
+            nn.ReLU())
         self.conv5 = nn.Sequential(
             nn.Conv2d(384, 256, 3, 1, 1),  # out 384*12*12
             nn.ReLU(),
@@ -34,14 +32,13 @@ class Net(nn.Module):
         )
         self.fc = nn.Sequential(
             # in 6400*1
-            nn.Linear(256*5*5, 4096),
+            nn.Linear(256 * 5 * 5, 4096),
             nn.ReLU(),
             nn.Dropout(self.drop_prob),
             nn.Linear(4096, 4096),
             nn.ReLU(),
             nn.Dropout(self.drop_prob),
-            nn.Linear(4096, num_classes)
-        )
+            nn.Linear(4096, num_classes))
 
     def forward(self, x):
         x = self.resize(x)
@@ -50,5 +47,42 @@ class Net(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
+        out = self.fc(x.view(x.shape[0], -1))
+        return out
+
+
+class LeNet5(nn.Module):
+    def __init__(self, num_classes=2, drop_prob=0.5):
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.conv1 = nn.Conv2d(1, 6, 5, padding=2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+        self.resize = transforms.Resize(224)
+        #input N*1*224*224
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(1, 20, 5),  #out N*20*220*220
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))  #out N*20*110*110
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(20, 50, 5),  #N*50*106*106
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))  #N*50*53*53
+        self.fc = nn.Sequential(
+            nn.Linear(50 * 53 * 53, 120), 
+            nn.ReLU(),
+            nn.Dropout(drop_prob), 
+            nn.Linear(120, 84),
+            nn.ReLU(), 
+            nn.Dropout(drop_prob),
+            nn.Linear(84, 2))
+
+    def forward(self, x):
+        x = self.resize(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
         out = self.fc(x.view(x.shape[0], -1))
         return out

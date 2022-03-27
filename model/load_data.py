@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def read_imgarray_from_singlepic(path_to_pic=str):
+def read_imgarray_from_singlepic(path_to_pic:str):
     """
     读取图片，并返回numpy ndarray数组
     Arguments:
@@ -55,7 +55,7 @@ def load_CME(save_location, selected_remarks):
     selected_labels  : 需要的数据所属的标签
     Returns:
     -------                                   
-    imgarrays         : 所有图片组成的数组，形状为数量*高*宽*通道
+    imgarrays         : 所有图片组成的数组，形状为数量*通道*高*宽
     labels            : 数据的标签，1表示CME，0表示非CME
     """
     CME_path = os.path.join(save_location, 'CME')
@@ -198,7 +198,7 @@ class CMEdata:
             feature = self.test_data
             label = self.test_label
         # 转换为tensor
-        # to do 还可以在这里添加transform变换
+        # todo 还可以在这里添加transform变换
         feature = torch.from_numpy(feature)
         label = torch.from_numpy(label)
 
