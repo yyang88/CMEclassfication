@@ -55,16 +55,22 @@ class ModelTrain:
         filename = os.path.join(train_info_path, 'epoch_info.xlsx')
         df.to_excel(filename)
 
+    class _ModuleEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, torch.nn.Module):
+                return repr(obj.__class__)
+            return json.JSONEncoder.default(self, obj)
+
     def __save_para_info(self, train_info_path):
         pos = self.cmedata.train_label.sum().item()
         neg = self.cmedata.size - pos
         para_dict['CME_count'] = pos
         para_dict['No_CME_count'] = neg
         para_dict['CME:NO CME'] = '{}:1'.format(pos / neg)
-        para_dict['Net']=type(self.net)
+        para_dict['Net'] = self.net
         filename = os.path.join(train_info_path, 'para.json')
         with open(filename, 'w') as f:
-            json.dump(para_dict, f)
+            json.dump(para_dict, f,cls=ModelTrain._ModuleEncoder)
 
     def save_info(self):
         current_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
@@ -174,6 +180,7 @@ class ModelTrain:
         img = np.expand_dims(img, 0)
         img = np.expand_dims(img, 0)
         img = torch.from_numpy(img)
+        self.net.eval()
         y = self.net(img)
         #resu = torch.argmax(self.net(img), dim=1)
         return y
@@ -201,6 +208,6 @@ if __name__ == '__main__':
     modeltrain.fit()
     modeltrain.save_info()
     resu = modeltrain.infer(
-        r'D:\Programming\CME_data\CME\Halo\20130830_031208_lasc2rdf_aia193rdf.png'
+        r'D:\Programming\CME_data\CME\Halo\20130830_032405_lasc2rdf_aia193rdf.png'
     )
     print(resu)

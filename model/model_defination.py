@@ -57,9 +57,6 @@ class LeNet5(nn.Module):
         self.drop_prob = drop_prob
         self.conv1 = nn.Conv2d(1, 6, 5, padding=2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
 
         self.resize = transforms.Resize(224)
         #input N*1*224*224
