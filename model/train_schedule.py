@@ -207,7 +207,7 @@ if __name__ == '__main__':
     modeltrain = ModelTrain(para_dict=para_dict,Net=model_defination.LeNet5)
     modeltrain.fit()
     modeltrain.save_info()
-    resu = modeltrain.infer(
-        r'D:\Programming\CME_data\CME\Halo\20130830_032405_lasc2rdf_aia193rdf.png'
-    )
-    print(resu)
+    # resu = modeltrain.infer(
+    #     r'D:\Programming\CME_data\CME\Halo\20130830_032405_lasc2rdf_aia193rdf.png'
+    # )
+    # print(resu)
